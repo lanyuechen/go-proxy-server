@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"log"
 	"github.com/go-martini/martini"
+	"log"
 	"net/http"
 )
 
@@ -17,9 +17,9 @@ func main() {
 
 	mount(*war, *proxyConfig)
 
-  log.Printf("start server on %s", *addr)
+	log.Printf("start server on %s", *addr)
 
-  log.Fatal(http.ListenAndServe(*addr, nil))
+	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
 func mount(war string, proxyConfig string) {
@@ -45,12 +45,3 @@ func mount(war string, proxyConfig string) {
 func testHandler(web *Web) (int, string) {
 	return web.Json(200, J{"test": "success"})
 }
-
-
-
-
-
-
-
-
-

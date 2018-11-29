@@ -1,2 +1,2 @@
-## server
+## go-proxy-server
 
