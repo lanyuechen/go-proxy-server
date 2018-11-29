@@ -1,0 +1,10 @@
+[
+	{
+		"test": "^/rpc",
+		"to": {
+			"scheme": "https",
+			"host": "dev.datahunter.cn",
+			"path": "/rpc"
+		}
+	}
+]
