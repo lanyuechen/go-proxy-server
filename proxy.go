@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"regexp"
 )
@@ -47,42 +46,36 @@ func midProxy(configDir string) func(http.ResponseWriter, *http.Request) {
 }
 
 func Proxy(target url.URL, w http.ResponseWriter, r *http.Request) {
-	if target.Scheme == "https" {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
-
-		url := fmt.Sprintf("https://%s%s", target.Host, r.RequestURI)
-
-		proxyReq, _ := http.NewRequest(r.Method, url, bytes.NewReader(body))
-
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{Transport: tr}
-
-		resp, err := client.Do(proxyReq)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadGateway)
-			return
-		}
-
-		defer resp.Body.Close()
-		body, err = ioutil.ReadAll(resp.Body)
-		w.Write(body)
-	} else {
-		director := func(r *http.Request) {
-			r.URL.Scheme = target.Scheme
-			r.URL.Host = target.Host
-			r.URL.Path = target.Path
-		}
-		p := &httputil.ReverseProxy{Director: director}
-		p.ServeHTTP(w, r)
+	// we need to buffer the body if we want to read it here and send it
+  // in the request. 
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	// you can reassign the body if you need to parse it as multipart
+	// r.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+	// create a new url from the raw RequestURI sent by the client
+	url := fmt.Sprintf("%s://%s%s", target.Scheme, target.Host, r.RequestURI)
+
+	proxyReq, _ := http.NewRequest(r.Method, url, bytes.NewReader(body))
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
+	resp, err := client.Do(proxyReq)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	w.Write(body)
 }
 
 func Load(filename string, v interface{}) {
